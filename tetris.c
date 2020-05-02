@@ -34,6 +34,7 @@ void InitTetris(){
 
 	nextBlock[0]=rand()%7;
 	nextBlock[1]=rand()%7;
+	nextBlock[2]=rand()%7;
 	blockRotate=0;
 	blockY=-1;
 	blockX=WIDTH/2-2;
@@ -43,7 +44,7 @@ void InitTetris(){
 
 	DrawOutline();
 	DrawField();
-	DrawBlock(blockY,blockX,nextBlock[0],blockRotate,' ');
+	DrawBlockWithFeatures(blockY,blockX,nextBlock[0],blockRotate);
 	DrawNextBlock(nextBlock);
 	PrintScore(score);
 }
@@ -54,14 +55,17 @@ void DrawOutline(){
 	DrawBox(0,0,HEIGHT,WIDTH);
 
 	/* next block을 보여주는 공간의 태두리를 그린다.*/
-	move(2,WIDTH+10);
+	move(2, WIDTH + 10);
 	printw("NEXT BLOCK");
-	DrawBox(3,WIDTH+10,4,8);
+	DrawBox(3, WIDTH + 10, 4, 8);
+	move(10, WIDTH + 10);
+	printw("NEXT BLOCK");
+	DrawBox(11, WIDTH + 10, 4, 8);
 
 	/* score를 보여주는 공간의 태두리를 그린다.*/
-	move(9,WIDTH+10);
+	move(18, WIDTH + 10);
 	printw("SCORE");
-	DrawBox(10,WIDTH+10,1,8);
+	DrawBox(19, WIDTH + 10, 1, 8);
 }
 
 int GetCommand(){
@@ -137,7 +141,7 @@ void DrawField(){
 
 
 void PrintScore(int score){
-	move(11,WIDTH+11);
+	move(20,WIDTH+11);
 	printw("%8d",score);
 }
 
@@ -152,6 +156,23 @@ void DrawNextBlock(int *nextBlock){
 				attroff(A_REVERSE);
 			}
 			else printw(" ");
+		}
+	}
+	for(i=0;i<4;i++)
+	{
+		move(12+i,WIDTH+13);
+		for(j=0;j<4;j++)
+		{
+			if(block[nextBlock[2]][0][i][j]==1){
+
+				attron(A_REVERSE);
+				attron(COLOR_PAIR(nextBlock[2] + 1));
+				printw(" ");
+				attroff(COLOR_PAIR(nextBlock[2] + 1));
+				attroff(A_REVERSE);
+			}
+			else
+				printw(" ");
 		}
 	}
 }
@@ -169,6 +190,12 @@ void DrawBlock(int y, int x, int blockID,int blockRotate,char tile){
 		}
 
 	move(HEIGHT,WIDTH+10);
+}
+
+void DrawBlockWithFeatures(int y, int x, int blockID, int blockRotate)
+{
+	DrawBlock(y, x, blockID, blockRotate, ' ');
+	DrawShadow(y, x, blockID, blockRotate);
 }
 
 void DrawBox(int y,int x, int height, int width){
@@ -234,7 +261,6 @@ char menu(){
 	return wgetch(stdscr);
 }
 
-/////////////////////////첫주차 실습에서 구현해야 할 함수/////////////////////////
 
 int CheckToMove(char f[HEIGHT][WIDTH],int currentBlock,int blockRotate, int blockY, int blockX){
 	// user code
@@ -291,13 +317,13 @@ void DrawChange(char f[HEIGHT][WIDTH],int command,int currentBlock,int blockRota
 		}
 	}
 	//3. 새로운 블록 정보를 그린다. 
-	DrawBlock(blockY, blockX, currentBlock, blockRotate, ' ');
+	DrawField();
+	DrawBlockWithFeatures(blockY, blockX, currentBlock, blockRotate);
 	//4.블록 출력 후 커서가 필드상에 있으므로 move함수를 이용하여 커서를 필드 밖으로 이동해준다.
 	move(HEIGHT, WIDTH + 10);
 }
 
 void BlockDown(int sig){
-	// user code
 
 	if (CheckToMove(field, nextBlock[0], blockRotate, blockY + 1, blockX))
 	{
@@ -309,7 +335,7 @@ void BlockDown(int sig){
 			gameOver = 1;
 		else{
 
-		AddBlockToField(field, nextBlock[0], blockRotate, blockY, blockX);
+		score += AddBlockToField(field, nextBlock[0], blockRotate, blockY, blockX);
 		score += DeleteLine(field);
 		nextBlock[0] = nextBlock[1];
 		nextBlock[1] = nextBlock[2];
@@ -328,10 +354,10 @@ void BlockDown(int sig){
 	timed_out = 0;
 }
 
-void AddBlockToField(char f[HEIGHT][WIDTH],int currentBlock,int blockRotate, int blockY, int blockX){
-	// user code
+int AddBlockToField(char f[HEIGHT][WIDTH],int currentBlock,int blockRotate, int blockY, int blockX){
+	
 	//Block이 추가된 영역의 필드값을 바꾼다.
-	int i,j;
+	int i,j,touched=0;
 	for (i = 0; i < BLOCK_HEIGHT; i++)
 	{
 		for (j = 0; j < BLOCK_WIDTH; j++)
@@ -339,13 +365,18 @@ void AddBlockToField(char f[HEIGHT][WIDTH],int currentBlock,int blockRotate, int
 			if (block[currentBlock][blockRotate][i][j] == 1)
 			{
 				field[blockY + i][blockX + j] = 1;
+				if (f[i + blockY + 1][j+blockX] || i +blockY+ 1 >= HEIGHT)
+				{
+					touched++;
+				}
 			}
 		}
 	}
+	return 10 * touched;
 }
 
 int DeleteLine(char f[HEIGHT][WIDTH]){
-	// user code
+	
 	//1. 필드를 탐색하여, 꽉 찬 구간이 있는지 탐색한다.
 	//2. 꽉 찬 구간이 있으면 해당 구간을 지운다. 즉, 해당 구간으로 필드값을 한칸씩 내린다.
 	int i, j, k, l;
@@ -381,11 +412,22 @@ int DeleteLine(char f[HEIGHT][WIDTH]){
 	return 100 * line * line;
 }
 
-///////////////////////////////////////////////////////////////////////////
 
 void DrawShadow(int y, int x, int blockID,int blockRotate){
-	// user code
+	/*while ((y < HEIGHT) && CheckToMove(field, blockID, blockRotate, y + 1, x))
+	{
+		 y++;
+	}*/
+	while (1)
+	{
+		if (y < HEIGHT&&CheckToMove(field, blockID, blockRotate, y + 1, x) == 1) y++;
+
+		else break;
+	}
+	DrawBlock(y, x, blockID, blockRotate, '/');
+	
 }
+
 
 void createRankList(){
 	// user code
