@@ -263,7 +263,7 @@ char menu(){
 
 
 int CheckToMove(char f[HEIGHT][WIDTH],int currentBlock,int blockRotate, int blockY, int blockX){
-	// user code
+
 	int i,j;
 	for (i = 0; i < BLOCK_HEIGHT; i++)
 	{
@@ -285,7 +285,7 @@ int CheckToMove(char f[HEIGHT][WIDTH],int currentBlock,int blockRotate, int bloc
 }
 
 void DrawChange(char f[HEIGHT][WIDTH],int command,int currentBlock,int blockRotate, int blockY, int blockX){
-	// user code
+
 	int i, j, check_num;
 	int pre_y = blockY; int pre_x = blockX; int pre_rot = blockRotate;
 
