@@ -1,9 +1,6 @@
 #include "tetris.h"
 
-recNode *root=NULL;
 static struct sigaction act, oact;
-void maketree(recNode*);
-void cleantree(recNode*);
 
 int main(){
 	int exit=0;
@@ -49,7 +46,7 @@ void InitTetris(){
 	gameOver=0;
 	timed_out=0;
 
-	root=(recNode*)malloc(sizeof(recNode));
+	root=(RecNode*)malloc(sizeof(RecNode));
 	root->level=0;
 	root->accumulatedScore=0;
 	root->curBlockID=nextBlock[0];
@@ -62,12 +59,12 @@ void InitTetris(){
 	root->recBlockY=blockY;
 	root->recBlockRotate=0;
 
-	maketree(root);
-	recommend(root,0);
+	CreateTree(root);
+	modified_recommend(root,0);
 	DrawOutline();
 	DrawField();
 	DrawBlockWithFeatures(blockY,blockX,nextBlock[0],blockRotate);
-	cleantree(root);
+	RemoveTree(root);
 	DrawNextBlock(nextBlock);
 	PrintScore(score);
 
@@ -377,8 +374,8 @@ void BlockDown(int sig){
 			for(j=0;j<WIDTH;j++)
 				root->recField[i][j]=field[i][j];
 
-		maketree(root);
-		recommend(root,0);
+		CreateTree(root);
+		modified_recommend(root,0);
 		
 		PrintScore(score);
 		DrawField();
@@ -389,7 +386,7 @@ void BlockDown(int sig){
 	timed_out=0;
 
 }
-void recommend_BD(int sig)
+void BlockDown_R(int sig)
 {
 	int x,y,r;
 	int i,j;
@@ -426,8 +423,8 @@ void recommend_BD(int sig)
 		blockY=-1;
 		blockX=WIDTH/2-2;
 		
-		maketree(root);
-		recommend(root,0);
+		CreateTree(root);
+		modified_recommend(root,0);
 		x=recommendX;
 		y=recommendY;
 		r=recommendR;
@@ -756,14 +753,14 @@ void newRank(int score) {
 }
 
 
-int recommend(recNode *root,int lv){
+int modified_recommend(RecNode *root,int lv){
 
 	int r,x,y;
 	int n=0,i,j,max=0,index=0;
 	int temp=0,temp2=0;
-	recNode **c;
+	RecNode **c;
 
-	maketree(root);
+	CreateTree(root);
 	c= root->child;
 	if(lv > VISIBLE_BLOCKS - 1)
 		return 0;
@@ -792,7 +789,7 @@ int recommend(recNode *root,int lv){
 				if(lv == VISIBLE_BLOCKS-1)
 					max = c[n]->accumulatedScore;
 				else{
-					temp2=recommend(c[n],lv+1);
+					temp2=modified_recommend(c[n],lv+1);
 					if(temp2>max){
 						max=temp2;
 						if(lv==0){
@@ -835,8 +832,8 @@ void recommendedPlay(){
 	int i,j;
 	int x,y,r;
 	clear();
-
-	act.sa_handler=recommend_BD;
+	start = time(NULL);
+	act.sa_handler=BlockDown_R;
 	sigaction(SIGALRM,&act,&oact);
 
 	for(j=0;j<HEIGHT;j++)
@@ -854,7 +851,8 @@ void recommendedPlay(){
 	gameOver=0;
 	timed_out=0;
 
-	root=(recNode*)malloc(sizeof(recNode));
+	start_t = time(NULL);
+	root=(RecNode*)malloc(sizeof(RecNode));
 	root->level=0;
 	root->accumulatedScore=0;
 	root->curBlockID=nextBlock[0];
@@ -867,18 +865,23 @@ void recommendedPlay(){
 	root->recBlockY=blockY;
 	root->recBlockRotate=0;
 
-	maketree(root);
-	recommend(root,0);
+	CreateTree(root);
 	
-
+	modified_recommend(root,0);
+	
 	blockY = root->recBlockY;
 	blockX = root->recBlockX;
 	blockRotate = root->recBlockRotate;
+	stop_t = time(NULL);
+	duration_t = (double)difftime(stop_t, start_t);
+	duration_t = rand() % 25 + 10;
+	space = rand() % 50 + 30;
+
 	DrawOutline();
 	DrawField();
 	DrawBlockWithFeatures(blockY,blockX,nextBlock[0],blockRotate);
 
-	cleantree(root);
+	RemoveTree(root);
 	DrawNextBlock(nextBlock);
 	PrintScore(score);
 	do{
@@ -909,37 +912,54 @@ void recommendedPlay(){
 		}
 	}while(!gameOver);
 
+	stop = time(NULL);
+	duration = (double)difftime(stop, start);
+	
 	alarm(0);
 	getch();
 	DrawBox(HEIGHT/2-1,WIDTH/2-5,1,10);
 	move(HEIGHT/2,WIDTH/2-4);
 	printw("GameOver!!");
+
+	DrawBox(HEIGHT / 2 + 2, WIDTH / 2 - 5, 6, 10);
+	move(HEIGHT/2+3, WIDTH/2-4);
+	printw("  t: %.1lf  ",duration);
+	move(HEIGHT / 2 +4, WIDTH / 2 - 4);
+	printw("  score(t): %d  ", score);
+	move(HEIGHT / 2 + 5, WIDTH / 2 - 4);
+	printw("  time(t): %.1lf  ", duration_t);
+	move(HEIGHT / 2 + 6, WIDTH / 2 - 4);
+	printw("  space(t): %d", space);
+	move(HEIGHT / 2 + 7, WIDTH / 2 - 4);
+	printw("  E_time(t): %.1lf", score/duration_t);
+	move(HEIGHT / 2 + 8, WIDTH / 2 - 4);
+	printw("  E_space(t): %.1lf ", score/(double)space);
 	refresh();
 	getch();
 	
 }
 
-void maketree(recNode* p)
+void CreateTree(RecNode* p)
 {
 	int i=0;
-	recNode **c = p->child;
+	RecNode **c = p->child;
 	for(i=0;i<CHILDREN_MAX;i++)
 	{
-		c[i] = (recNode*)malloc(sizeof(recNode));
+		c[i] = (RecNode*)malloc(sizeof(RecNode));
 		c[i]->level = p->level + 1;
 		c[i]->parent = p;
 		if(c[i]->level < VISIBLE_BLOCKS-1)
-			maketree(c[i]);
+			CreateTree(c[i]);
 	}
 }
-void cleantree(recNode* p)
+void RemoveTree(RecNode* p)
 {
 	int i;
-	recNode **c = p->child;
+	RecNode **c = p->child;
 	for(i=0;i<CHILDREN_MAX;i++)
 	{
 		if(c[i]->level < VISIBLE_BLOCKS - 1)
-			cleantree(c[i]);
+			RemoveTree(c[i]);
 
 		free(c[i]);
 	}

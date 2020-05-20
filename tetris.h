@@ -39,18 +39,27 @@ Node* temp;
 int ranklen;
 int rankflag;
 
-typedef struct _recNode{
+//recommend
+typedef struct _RecNode{
 	int accumulatedScore;
 	char recField[HEIGHT][WIDTH];
-	struct _recNode *child[CHILDREN_MAX];
+	struct _RecNode *child[CHILDREN_MAX];
 	int level;
 	//must have
 
 	int curBlockID;
 	int recBlockX,recBlockY,recBlockRotate;
-	struct _recNode *parent;
+	struct _RecNode *parent;
 	//optional
-}recNode;
+}RecNode;
+RecNode *root = NULL;
+//time
+time_t start, start_t;
+time_t stop, stop_t;
+double duration, duration_t;
+int space;
+
+
 /* [blockShapeID][# of rotate][][]*/
 const char block[NUM_OF_SHAPE][NUM_OF_ROTATE][BLOCK_HEIGHT][BLOCK_WIDTH] ={
 	{/*[0][][][]					▩▩▩▩*/
@@ -207,7 +216,7 @@ int ProcessCommand(int command);
  *	input	: (int) sig
  *	return	: none
  ***********************************************************/
-void recommend_BD(int sig);
+
 void BlockDown(int sig);;
 /***********************************************************
  *	입력된 움직임이 가능한지를 판단해주는 함수.
@@ -359,7 +368,7 @@ void newRank(int score);
  *		  (int) 현재 블럭과 다음 블럭들 중에서 어떤 블럭에 대한 추천인지 명시
  *	return	: (int) 추천 블럭 배치에 따를 때 얻어지는 예상 스코어
  ***********************************************************/
-int recommend(recNode*,int);
+int modified_recommend(RecNode*,int);
 /***********************************************************
  *	추천 기능에 따라 블럭을 배치하여 진행하는 게임을 시작한다.
  *	input	: none
@@ -368,4 +377,7 @@ int recommend(recNode*,int);
 void recommendedPlay();
 void DrawBlockWithFeatures(int y,int x,int blockID,int blockRotate);
 void DrawRecommend(int y, int x, int blockID,int blockRotate);
+void BlockDown_R(int sig);
+void CreateTree(RecNode *root);
+void RemoveTree(RecNode *root);
 #endif
